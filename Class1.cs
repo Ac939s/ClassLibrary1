@@ -4,7 +4,7 @@ using RimWorld;
 using System;
 using Verse;
 using Verse.Sound;
-
+using System.Collections.Generic; // 需要添加这个
 
 namespace Xhpp_KillSounds
 {
@@ -38,18 +38,45 @@ namespace Xhpp_KillSounds
         {
             Listing_Standard listing_Standard = new Listing_Standard();
             listing_Standard.Begin(inRect);
-            listing_Standard.CheckboxLabeled("关闭本模组", ref settings.enableKillSound, "勾选关闭");
-            listing_Standard.CheckboxLabeled("是否盟友也会触发击杀音效", ref settings.enableKillSound2, "勾选后盟友也会触发");
-            listing_Standard.CheckboxLabeled("是否触发惨叫", ref settings.enableKillSound3, "勾选会触发");
-            listing_Standard.CheckboxLabeled("是否触发连杀", ref settings.enableKillSound4, "勾选会触发");
-            listing_Standard.CheckboxLabeled("是否仅战地", ref settings.enableKillSound5, "勾是后仅播放战地音效");
+            
+            // 🔴【修改】使用翻译键
+            listing_Standard.CheckboxLabeled(
+                "KillSounds_EnableMod".Translate(), 
+                ref settings.enableKillSound, 
+                "KillSounds_EnableMod_Tip".Translate()
+            );
+            
+            listing_Standard.CheckboxLabeled(
+                "KillSounds_AllyTrigger".Translate(), 
+                ref settings.enableKillSound2, 
+                "KillSounds_AllyTrigger_Tip".Translate()
+            );
+            
+            listing_Standard.CheckboxLabeled(
+                "KillSounds_Scream".Translate(), 
+                ref settings.enableKillSound3, 
+                "KillSounds_Scream_Tip".Translate()
+            );
+            
+            listing_Standard.CheckboxLabeled(
+                "KillSounds_Streak".Translate(), 
+                ref settings.enableKillSound4, 
+                "KillSounds_Streak_Tip".Translate()
+            );
+            
+            listing_Standard.CheckboxLabeled(
+                "KillSounds_Battlefield".Translate(), 
+                ref settings.enableKillSound5, 
+                "KillSounds_Battlefield_Tip".Translate()
+            );
+            
             listing_Standard.End();
             base.DoSettingsWindowContents(inRect);
         }
 
         public override string SettingsCategory()
         {
-            return "模组配置";
+            return "KillSounds_ModName".Translate(); // 🔴【修改】模组名称翻译
         }
 
         public colseKillSound(ModContentPack content)
@@ -148,14 +175,16 @@ namespace Xhpp_KillSounds
     {
         static StartUp()
         {
-            Log.Message("Kill Sounds Mod 加载中...");
+            // 🔴【修改】使用翻译键
+            Log.Message("KillSounds_Loading".Translate());
+            
             try
             {
                 var harmony = new Harmony("xhpp.killsounds");
                 harmony.PatchAll();
-                Log.Message("[Kill Sounds] Mod 已加载");
+                Log.Message("KillSounds_Loaded".Translate());
 
-                // 预检音效文件
+                // 预检音效文件（这部分保持原样，因为音效名称不翻译）
                 string[] names =
                 {
                     "KillSound1", "KillSound2", "KillSound3", "KillSound4",
@@ -169,12 +198,12 @@ namespace Xhpp_KillSounds
                 {
                     var sd = DefDatabase<SoundDef>.GetNamedSilentFail(n);
                     if (sd == null)
-                        Log.Warning($"[Kill Sounds] 缺少 SoundDef: {n}");
+                        Log.Warning("KillSounds_MissingSound".Translate(n)); // 🔴【修改】使用翻译键
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"[Kill Sounds] Harmony 补丁应用失败: {ex}");
+                Log.Error("KillSounds_PatchFailed".Translate(ex.ToString())); // 🔴【修改】使用翻译键
             }
         }
     }
@@ -182,6 +211,26 @@ namespace Xhpp_KillSounds
     [HarmonyPatch(typeof(Pawn), nameof(Pawn.Kill))]
     public static class Patch_Pawn_Kill
     {
+        // 为每个凶手单独记录连杀数据
+        private static Dictionary<int, StreakInfo> streakData = new Dictionary<int, StreakInfo>();
+
+        private class StreakInfo
+        {
+            public int killCount = 0;
+            public int lastKillTick = -60000;
+            public Pawn lastVictim; // 防止重复计数
+        }
+
+        private static StreakInfo GetStreakInfo(Pawn killer)
+        {
+            int id = killer.thingIDNumber;
+            if (!streakData.ContainsKey(id))
+            {
+                streakData[id] = new StreakInfo();
+            }
+            return streakData[id];
+        }
+
         public static void Postfix(Pawn __instance, DamageInfo? dinfo, Hediff exactCulprit)
         {
             try
@@ -190,11 +239,12 @@ namespace Xhpp_KillSounds
                 if (__instance == null || colseKillSound.settings.enableKillSound) return;
 
                 int currentTick = Find.TickManager.TicksGame;
+                
                 // 检查凶手条件
-                if (dinfo.HasValue && //伤害详情有值
-                    dinfo.Value.Instigator is Pawn instigator && //伤害对象属于pawn
-                    instigator.Faction != null && // 凶手有阵营
-                    __instance.Faction != null && // 受害者有阵营
+                if (dinfo.HasValue && 
+                    dinfo.Value.Instigator is Pawn instigator && 
+                    instigator.Faction != null && 
+                    __instance.Faction != null && 
                     !__instance.Faction.IsPlayer) // 受害者不是玩家阵营
                 {
                     // 判断是否触发音效
@@ -215,37 +265,46 @@ namespace Xhpp_KillSounds
 
                     if (!shouldTrigger) return;
 
-                    Log.Message("1 挑选Pawn_Kill");
+                    // 🔴【修改】调试日志使用翻译键
+                    Log.Message("KillSounds_Log_Selected".Translate());
 
+                    // 获取该凶手的连杀数据
+                    var streak = GetStreakInfo(instigator);
+                    
+                    // 防止重复计数同一目标
+                    if (streak.lastVictim == __instance)
+                        return;
 
                     // 检查是否在时间限制内
-                    if (currentTick - colseKillSound.settings.lastKillTick <=
-                        colseKillSound.settings.killStreakTimeLimit * 60)
+                    if (currentTick - streak.lastKillTick <= colseKillSound.settings.killStreakTimeLimit * 60)
                     {
-                        colseKillSound.settings.KillCount++;
-                        Log.Message("连杀数" + colseKillSound.settings.KillCount);
+                        streak.killCount++;
+                        Log.Message("KillSounds_Log_Streak".Translate() + streak.killCount);
                     }
                     else
                     {
-                        colseKillSound.settings.KillCount = 1;
+                        streak.killCount = 1;
                     }
 
                     // 更新状态
-                    colseKillSound.settings.lastKillTick = currentTick;
-                    Log.Message("时间刻:" + currentTick);
-                    // 获取对应的连杀音效（KillSound2_CF 对应 2连杀，以此类推）
-                    SoundDef chosen = GetStreakKillSound(colseKillSound.settings.KillCount);
+                    streak.lastKillTick = currentTick;
+                    streak.lastVictim = __instance;
+                    
+                    Log.Message("KillSounds_Log_Tick".Translate() + currentTick);
+                    
+                    // 获取对应的连杀音效
+                    SoundDef chosen = GetStreakKillSound(streak.killCount);
 
                     if (chosen != null)
                     {
-                        Log.Message("2 挑选Pawn_Kill - 准备播放音效");
+                        Log.Message("KillSounds_Log_Playing".Translate());
                         TryPlaySound(chosen, __instance);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"[Kill Sounds] 播放音效时出错: {ex}");
+                Log.Error("KillSounds_PlayError".Translate(ex.ToString())); // 🔴【修改】使用翻译键
             }
         }
 
@@ -288,7 +347,7 @@ namespace Xhpp_KillSounds
 
         private static void TryPlaySound(SoundDef soundDef, Pawn pawn)
         {
-            Log.Message("播放音效");
+            Log.Message("KillSounds_Log_Play".Translate()); // 🔴【修改】使用翻译键
             if (soundDef == null || pawn == null) return;
             soundDef.PlayOneShot(SoundInfo.InMap(new TargetInfo(pawn)));
         }
