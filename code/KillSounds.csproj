@@ -63,6 +63,7 @@
     <Compile Include="DefOf.cs" />
     <Compile Include="Mod.cs" />
     <Compile Include="StreakTracker.cs" />
+    <Compile Include="VisualFeedback.cs" />
     <Compile Include="Patch_Pawn_Kill.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

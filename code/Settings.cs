@@ -12,6 +12,8 @@ namespace KillSounds
         public bool battlefieldOnly = false;
         public float streakTimeLimitSeconds = 10f;
         public bool debugLogging = false;
+        public bool enableVisualFeedback = true;
+        public bool enableStreakText = true;
 
         public override void ExposeData()
         {
@@ -22,6 +24,8 @@ namespace KillSounds
             Scribe_Values.Look(ref battlefieldOnly, "battlefieldOnly", false);
             Scribe_Values.Look(ref streakTimeLimitSeconds, "streakTimeLimitSeconds", 10f);
             Scribe_Values.Look(ref debugLogging, "debugLogging", false);
+            Scribe_Values.Look(ref enableVisualFeedback, "enableVisualFeedback", true);
+            Scribe_Values.Look(ref enableStreakText, "enableStreakText", true);
         }
 
         public void DrawSettings(Rect inRect)
@@ -74,6 +78,23 @@ namespace KillSounds
                     "KillSounds_DebugLog".Translate(),
                     ref debugLogging,
                     "KillSounds_DebugLog_Tip".Translate());
+
+                listing.Gap(8f);
+
+                listing.Label("KillSounds_VisualHeader".Translate());
+
+                listing.CheckboxLabeled(
+                    "KillSounds_VisualFeedback".Translate(),
+                    ref enableVisualFeedback,
+                    "KillSounds_VisualFeedback_Tip".Translate());
+
+                if (enableVisualFeedback)
+                {
+                    listing.CheckboxLabeled(
+                        "KillSounds_StreakText".Translate(),
+                        ref enableStreakText,
+                        "KillSounds_StreakText_Tip".Translate());
+                }
             }
 
             listing.End();

@@ -14,7 +14,8 @@ KillSounds/                        # 模组根目录（发布内容）
 │   └── Defs/SoundDefs.xml         # 音效 Def 定义
 └── Source/KillSounds/             # 源码仓库
     ├── code/                      # C# 工程（KillSounds.slnx / KillSounds.csproj）
-    └── doc/                       # 项目文档
+    ├── doc/                       # 项目文档（README.md 总览、design.md 设计、CODE_STANDARDS.md 规范）
+    └── .opencode/                 # agent 团队配置（agents/）、记忆（memory/）、团队文档（docs/）
 ```
 
 ## 功能与工作原理

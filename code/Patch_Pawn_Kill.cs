@@ -29,13 +29,15 @@ namespace KillSounds
                     Log.Message("KillSounds_Log_Selected".Translate());
 
                 SoundDef sound = SoundPicker.ChooseSound(settings, streakCount.Value);
-                if (sound == null)
-                    return;
+                if (sound != null)
+                {
+                    if (settings.debugLogging)
+                        Log.Message("KillSounds_Log_Playing".Translate());
 
-                if (settings.debugLogging)
-                    Log.Message("KillSounds_Log_Playing".Translate());
+                    sound.PlayOneShot(SoundInfo.InMap(new TargetInfo(__instance)));
+                }
 
-                sound.PlayOneShot(SoundInfo.InMap(new TargetInfo(__instance)));
+                VisualFeedback.Trigger(settings, instigator, streakCount.Value);
             }
             catch (System.Exception ex)
             {
